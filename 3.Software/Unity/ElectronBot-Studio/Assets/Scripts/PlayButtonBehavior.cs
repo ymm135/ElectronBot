@@ -14,9 +14,6 @@ public class PlayButtonBehavior : MonoBehaviour
     public float deltaTime = 0.1f;
 
     private bool isPlaying = false;
-    
-    public 
-
 
     // Start is called before the first frame update
     void Start()
