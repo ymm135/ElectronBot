@@ -6,67 +6,100 @@ using TMPro;
 using UnityEngine.EventSystems;
 using System;
 
+/// <summary>
+/// 高级滚动机制组件
+/// 提供带有动画效果、惯性滚动、无限滚动等功能的自定义滚动视图
+/// 支持鼠标滚轮、触摸板和拖拽操作
+/// </summary>
 public class ScrollMechanic : MonoBehaviour, IDropHandler, IDragHandler, IBeginDragHandler, IPointerExitHandler,
     IPointerEnterHandler
 {
+    /// <summary>显示时间差的游戏对象</summary>
     public GameObject deltaTime;
 
-    [Header("Test variables")] public bool initTest; //Test initialization
-    public bool isInfinite; //Is infinite scrolling (Required initialization)
-    public string[] testData; //Test data
+    [Header("Test variables")] 
+    /// <summary>测试初始化标志</summary>
+    public bool initTest;
+    /// <summary>是否启用无限滚动（需要初始化）</summary>
+    public bool isInfinite;
+    /// <summary>测试数据数组</summary>
+    public string[] testData;
 
-    [Header("Text prefab")] public GameObject templateValues;
+    [Header("Text prefab")] 
+    /// <summary>文本模板预制体</summary>
+    public GameObject templateValues;
 
-    [Header("Required objects")] public Camera camera; //Main camera
-    public RectTransform targetCanvas; //Target canvas
+    [Header("Required objects")] 
+    /// <summary>主摄像机</summary>
+    public new Camera camera;
+    /// <summary>目标画布</summary>
+    public RectTransform targetCanvas;
+    /// <summary>内容目标容器</summary>
+    public RectTransform contentTarget;
+    /// <summary>自定义布局组件，可替代默认布局组</summary>
+    public AutoSizeLayout contentSize;
 
-    public RectTransform contentTarget; //Target content
-    public AutoSizeLayout contentSize; //My own layout group script. You could use it instead of default layout group
-
-    [Header("Settings")] [Space(20)] public float heightTemplate = 27; //Height of template rect texts
-
-    public AnimationCurve curve; //Curve for controlling "Shape" of scroll
-    public AnimationCurve curveShift; //Curve for controlling text offset
-
-    public float speedLerp = 5; //Speed of concentrating
-    public float minVelocity = 0.2f; //Minimun inertion value to start concentrating
-
-    public float shiftUp = 32; //Offset of upper texts
-    public float shiftDown = 32; //Offset of lower texts
-    public float padding = 0; //Spacing from upper and lower borders
-    [Range(0, 1)] public float colorPad = 0.115f; //Padding of text color
-    public float maxFontSize = 48.2f; //Maximun font size
-
-    public bool isElastic = true; //Is elastic movement
-    public float maxElastic = 50; //Maximun elasity distance
-
-    public float inertiaSense = 4; //Inertia sensibility
+    [Header("Settings")] [Space(20)] 
+    /// <summary>模板文本矩形的高度</summary>
+    public float heightTemplate = 27;
+    /// <summary>控制滚动"形状"的动画曲线</summary>
+    public AnimationCurve curve;
+    /// <summary>控制文本偏移的动画曲线</summary>
+    public AnimationCurve curveShift;
+    /// <summary>聚焦速度</summary>
+    public float speedLerp = 5;
+    /// <summary>开始聚焦的最小惯性值</summary>
+    public float minVelocity = 0.2f;
+    /// <summary>上方文本的偏移量</summary>
+    public float shiftUp = 32;
+    /// <summary>下方文本的偏移量</summary>
+    public float shiftDown = 32;
+    /// <summary>上下边界的间距</summary>
+    public float padding = 0;
+    /// <summary>文本颜色的填充值</summary>
+    [Range(0, 1)] public float colorPad = 0.115f;
+    /// <summary>最大字体大小</summary>
+    public float maxFontSize = 48.2f;
+    /// <summary>是否启用弹性移动</summary>
+    public bool isElastic = true;
+    /// <summary>最大弹性距离</summary>
+    public float maxElastic = 50;
+    /// <summary>惯性敏感度</summary>
+    public float inertiaSense = 4;
 
     [Header("Mouse Wheel and Touchpad scroll methods")]
+    /// <summary>是否可以使用鼠标滚轮</summary>
     public bool isCanUseMouseWheel;
-
+    /// <summary>是否反转鼠标滚轮方向</summary>
     public bool isInvertMouseWheel;
+    /// <summary>鼠标滚轮敏感度</summary>
     public float mouseWheelSensibility = 0.5f;
+    /// <summary>触摸板敏感度</summary>
     public float touchpadSensibility = 0.5f;
 
+    /// <summary>是否正在拖拽</summary>
     bool isDragging;
+    /// <summary>惯性值</summary>
     float inertia;
-
+    /// <summary>内容起始位置</summary>
     float startPosContent;
+    /// <summary>鼠标起始位置</summary>
     float startPosMouse;
+    /// <summary>中心位置</summary>
     float middle;
+    /// <summary>文本高度</summary>
     float heightText = 27;
-
+    /// <summary>检查计数</summary>
     int countCheck = 4;
-
+    /// <summary>当前中心索引</summary>
     int currentCenter;
-
+    /// <summary>是否已初始化</summary>
     bool isInitialized;
-
+    /// <summary>总数量</summary>
     int countTotal;
-
+    /// <summary>填充计数</summary>
     int padCount;
-
+    /// <summary>触摸板滚动值</summary>
     float _padScroll;
 
     public float MouseScroll
@@ -206,14 +239,17 @@ public class ScrollMechanic : MonoBehaviour, IDropHandler, IDragHandler, IBeginD
     }
 
     /// <summary>
-    /// Return list ID of current concentration
+    /// 返回当前聚焦项的列表ID
     /// </summary>
-    /// <returns></returns>
+    /// <returns>当前聚焦项的索引</returns>
     public int GetCurrentValue()
     {
         return int.Parse(contentTarget.GetChild(currentCenter).name);
     }
 
+    /// <summary>
+    /// 每帧更新滚动逻辑，处理拖拽、惯性、边界检测和视觉效果
+    /// </summary>
     private void Update()
     {
         if (Input.GetMouseButtonUp(0))
@@ -463,15 +499,27 @@ public class ScrollMechanic : MonoBehaviour, IDropHandler, IDragHandler, IBeginD
         }
     }
 
+    /// <summary>
+    /// 拖拽结束事件处理
+    /// </summary>
+    /// <param name="eventData">指针事件数据</param>
     public void OnDrop(PointerEventData eventData)
     {
         isDragging = false;
     }
 
+    /// <summary>
+    /// 拖拽过程事件处理（空实现，实际拖拽逻辑在Update中处理）
+    /// </summary>
+    /// <param name="eventData">指针事件数据</param>
     public void OnDrag(PointerEventData eventData)
     {
     }
 
+    /// <summary>
+    /// 拖拽开始事件处理，记录初始位置
+    /// </summary>
+    /// <param name="eventData">指针事件数据</param>
     public void OnBeginDrag(PointerEventData eventData)
     {
         isDragging = true;
@@ -479,18 +527,31 @@ public class ScrollMechanic : MonoBehaviour, IDropHandler, IDragHandler, IBeginD
         startPosContent = contentTarget.anchoredPosition.y;
     }
 
+    /// <summary>鼠标是否在滚动区域内</summary>
     bool isInArea;
 
+    /// <summary>
+    /// 鼠标进入滚动区域事件处理
+    /// </summary>
+    /// <param name="eventData">指针事件数据</param>
     public void OnPointerEnter(PointerEventData eventData)
     {
         isInArea = true;
     }
 
+    /// <summary>
+    /// 鼠标离开滚动区域事件处理
+    /// </summary>
+    /// <param name="eventData">指针事件数据</param>
     public void OnPointerExit(PointerEventData eventData)
     {
         isInArea = false;
     }
 
+    /// <summary>
+    /// 当前选中值改变时的回调，用于设置播放按钮的时间间隔
+    /// </summary>
+    /// <param name="id">选中项的索引</param>
     public void OnValueChanged(int id)
     {
         float[] deltaTimes = new float[testData.Length];
