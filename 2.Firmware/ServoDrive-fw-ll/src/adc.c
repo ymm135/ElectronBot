@@ -50,6 +50,7 @@ void MX_ADC_Init(void)
   LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* ADC DMA Init */
+  /* 使用 DMA1 通道1 将 ADC1 常规数据搬运到 `adcData` 缓冲区 */
 
   /* ADC Init */
   LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_1, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
@@ -97,6 +98,7 @@ void MX_ADC_Init(void)
   LL_ADC_REG_SetSequencerScanDirection(ADC1, LL_ADC_REG_SEQ_SCAN_DIR_FORWARD);
   LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_1CYCLE_5);
   /* USER CODE BEGIN ADC_Init 2 */
+    // 使能ADC并启动一次常规转换，结果通过DMA写入 `adcData`
     LL_ADC_Enable(ADC1);
     LL_ADC_REG_StartConversion(ADC1);
   /* USER CODE END ADC_Init 2 */

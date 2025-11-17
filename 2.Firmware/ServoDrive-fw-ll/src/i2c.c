@@ -24,9 +24,24 @@
 uint8_t i2cDataRx[8];
 uint8_t i2cDataTx[8];
 
+/* 数据帧与流向说明
+ *
+ * RX 接收帧：5 字节，格式为 [cmd(1B)][data(4B)]，一般 data 为小端 float。
+ *   - 触发条件：主机写（WRITE）到从机地址时，在 `I2C1_IRQHandler` 中检测到
+ *     ADDRESS + WRITE 后使能 DMA1 CH3。
+ *   - 搬运过程：DMA1 CH3 将 `I2C1->RXDR` 数据搬运到 `i2cDataRx`，长度 5。
+ *   - 完成通知：DMA 传输完成触发 `DMA1_Channel2_3_IRQHandler`，调用
+ *     `I2C_SlaveDMARxCpltCallback()` 解析并处理命令。
+ *
+ * TX 发送帧：5 字节，格式为 [cmd(1B)][resp(4B)]，resp 通常为小端 float。
+ *   - 触发条件：回调处理完毕后调用 `Slave_Transmit(i2cDataTx, 5, timeout)`。
+ *   - 发送方式：阻塞式，等待主机读（READ）方向，逐字节写入 `I2C1->TXDR`。
+ */
+
 /* USER CODE END 0 */
 
 /* USER CODE BEGIN 1 */
+/* 初始化 I2C1 从机模式，设置 7bit 地址为参数 `_id`，并使能 DMA 接收与中断 */
 void MY_I2C1_Init(uint32_t _id)
 {
 
@@ -74,7 +89,9 @@ void MY_I2C1_Init(uint32_t _id)
   LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MDATAALIGN_BYTE);
 
   LL_DMA_SetDataLength(DMA1,LL_DMA_CHANNEL_3,5);
+  /* 接收长度固定为 5 字节：[cmd][data0..3] */
   LL_DMA_SetMemoryAddress(DMA1,LL_DMA_CHANNEL_3,(uint32_t)i2cDataRx);
+  /* 外设源地址指向 I2C1 接收数据寄存器 */
   LL_DMA_SetPeriphAddress(DMA1,LL_DMA_CHANNEL_3,LL_I2C_DMA_GetRegAddr(I2C1,LL_I2C_DMA_REG_DATA_RECEIVE));  
   LL_DMA_EnableIT_TC(DMA1,LL_DMA_CHANNEL_3);
   /* Peripheral clock enable */
@@ -83,6 +100,7 @@ void MY_I2C1_Init(uint32_t _id)
   /* I2C1 interrupt Init */
   NVIC_SetPriority(I2C1_IRQn, 0);
   NVIC_EnableIRQ(I2C1_IRQn);
+  /* I2C1 事件中断：用于在地址匹配且主机写入方向时启动 DMA 接收 */
 
   /* USER CODE BEGIN I2C1_Init 1 */
   
@@ -104,6 +122,7 @@ void MY_I2C1_Init(uint32_t _id)
   LL_I2C_SetOwnAddress2(I2C1, 0, LL_I2C_OWNADDRESS2_NOMASK);
   LL_I2C_EnableOwnAddress2(I2C1);
     /* USER CODE BEGIN I2C1_Init 2 */
+    // 使能I2C、地址匹配中断以及DMA接收请求
     LL_I2C_Enable(I2C1);
     LL_I2C_EnableIT_ADDR(I2C1);
     LL_I2C_EnableDMAReq_RX(I2C1);
@@ -117,6 +136,10 @@ void Set_ID(uint8_t _id)
     LL_I2C_EnableOwnAddress1(I2C1);
 }
 
+/* 阻塞式从机发送：等待主机读请求并逐字节发送，带超时保护
+ * - 常用发送长度：5 字节 [cmd(1B)][resp(4B)]
+ * - 当主机方向为 READ 时，逐字节将 `pdata` 写入 TXDR
+ */
 ErrorStatus Slave_Transmit(uint8_t *pdata,uint16_t size,uint32_t timeout)
 {
     uint32_t Timeout = timeout;

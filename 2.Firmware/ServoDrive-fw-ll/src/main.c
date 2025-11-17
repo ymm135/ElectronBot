@@ -25,6 +25,7 @@
 #include "gpio.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+// 应用层公共接口与变量声明
 #include "common_inc.h"
 /* USER CODE END Includes */
 
@@ -79,6 +80,7 @@ int main(void)
   /* System interrupt init*/
 
   /* USER CODE BEGIN Init */
+  // 若使能预取缓存，可降低 Flash 访问等待周期，提高运行效率
   #if (PREFETCH_ENABLE != 0)
     __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
   #endif /* PREFETCH_ENABLE */
@@ -98,6 +100,8 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
+  // 初始化完成，将控制权交给用户主入口函数 Main()
+  // Main() 在 `common_inc.h` 中声明，用于应用层逻辑
   Main();
   /* USER CODE END 2 */
 
