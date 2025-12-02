@@ -4,12 +4,6 @@
 #include <string>
 #include <vector>
 
-// 简易命令行工具：
-// - list  列出系统中的 USB 设备
-// - probe <vid> <pid>  打开设备并打印首个 Bulk IN/OUT 端点信息
-// - xfer  <vid> <pid> <hex-cmd> <float>  发送 5 字节帧并读取 5 字节响应
-// 注意：Windows 需将目标设备绑定到 WinUSB/libusbK/libusb-win32 才能被 libusb 访问
-
 static uint16_t parse_hex(const char* s) {
   unsigned v = 0; sscanf(s, "%x", &v); return (uint16_t)v; }
 
